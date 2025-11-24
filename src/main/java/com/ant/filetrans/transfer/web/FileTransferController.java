@@ -158,12 +158,18 @@ public class FileTransferController {
         }
         return extensions.stream()
                 .filter(s -> s != null && !s.isBlank())
-                .map(s -> {
-                    String trimmed = s.trim();
-                    return trimmed.startsWith(".") ? trimmed.substring(1) : trimmed;
-                })
+                .map(String::trim)
+                .map(FileTransferController::stripWildcardsAndDots)
                 .map(String::toLowerCase)
                 .distinct()
                 .toList();
+    }
+
+    private static String stripWildcardsAndDots(String value) {
+        String result = value;
+        while (!result.isEmpty() && (result.charAt(0) == '.' || result.charAt(0) == '*')) {
+            result = result.substring(1);
+        }
+        return result;
     }
 }
