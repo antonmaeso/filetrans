@@ -4,18 +4,19 @@ import com.ant.filetrans.transfer.domain.FileDescriptor;
 import com.ant.filetrans.transfer.domain.MovedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.job.JobExecution;
-import org.springframework.batch.core.listener.JobExecutionListener;
-import org.springframework.batch.core.listener.StepExecutionListener;
-import org.springframework.batch.core.step.StepExecution;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.listener.JobExecutionListener;
+import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
-import org.springframework.batch.infrastructure.item.ItemReader;
+import org.springframework.batch.infrastructure.item.ItemStreamReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
+@EnableBatchProcessing
 @Configuration
 public class FileTransferConfig {
 
@@ -35,23 +37,23 @@ public class FileTransferConfig {
     private static final DateTimeFormatter DAY  = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @Bean
-    public Job fileImportJob(JobRepository jobRepository,
-                             Step fileImportStep,
+    public Job photoImportJob(JobRepository jobRepository,
+                             Step transferStep,
                              JobExecutionListener jobExecutionLogger) {
 
         return new JobBuilder("photoImportJob", jobRepository)
                 .listener(jobExecutionLogger)
-                .start(fileImportStep)
+                .start(transferStep)
                 .build();
     }
 
     @Bean
-    public Step fileImportStep(JobRepository jobRepository,
-                               PlatformTransactionManager transactionManager,
-                               ItemReader<FileDescriptor> photoFileReader,
-                               ItemProcessor<FileDescriptor, MovedFile> photoFileProcessor,
-                               ItemWriter<MovedFile> fileWriter,
-                               StepExecutionListener stepExecutionLogger) {
+    public Step transferStep(JobRepository jobRepository,
+                             PlatformTransactionManager transactionManager,
+                             ItemStreamReader<FileDescriptor> photoFileReader,
+                             ItemProcessor<FileDescriptor, MovedFile> photoFileProcessor,
+                             ItemWriter<MovedFile> fileWriter,
+                             StepExecutionListener stepExecutionLogger) {
 
         return new StepBuilder("FileTransferStep", jobRepository)
                 .listener(stepExecutionLogger)
@@ -100,12 +102,13 @@ public class FileTransferConfig {
 
     @Bean
     @StepScope
-    public ItemReader<FileDescriptor> photoFileReader(
+    public ItemStreamReader<FileDescriptor> photoFileReader(
             @org.springframework.beans.factory.annotation.Value("#{jobParameters['sourceDir']}") String sourceDir,
             @org.springframework.beans.factory.annotation.Value("#{jobParameters['extensions']}") String extensionsParam) {
 
-        log.info("Scanning files under {} with extensions {}", sourceDir, extensionsParam);
-        return new FileItemReader(sourceDir, parseExtensions(extensionsParam));
+        Extensions extensions = Extensions.parse(extensionsParam);
+        log.info("Creating reader for {} with extensions {}", sourceDir, extensions.values());
+        return new FileItemReader(sourceDir, extensions);
     }
 
     @Bean
@@ -142,16 +145,5 @@ public class FileTransferConfig {
                 log.info("Moved {} -> {}", source, target);
             }
         };
-    }
-
-    private static java.util.Set<String> parseExtensions(String extensionsParam) {
-        if (extensionsParam == null || extensionsParam.isBlank()) {
-            return java.util.Set.of();
-        }
-        return java.util.Arrays.stream(extensionsParam.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(String::toLowerCase)
-                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
     }
 }

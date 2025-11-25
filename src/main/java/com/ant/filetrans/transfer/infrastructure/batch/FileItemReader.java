@@ -2,73 +2,97 @@ package com.ant.filetrans.transfer.infrastructure.batch;
 
 import com.ant.filetrans.transfer.domain.FileDescriptor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.infrastructure.item.ItemReader;
+import org.springframework.batch.infrastructure.item.ExecutionContext;
+import org.springframework.batch.infrastructure.item.ItemStreamException;
+import org.springframework.batch.infrastructure.item.ItemStreamReader;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
 
 @Slf4j
-public class FileItemReader implements ItemReader<FileDescriptor> {
+public class FileItemReader implements ItemStreamReader<FileDescriptor> {
 
-    private final Iterator<Path> iterator;
-    private final Set<String> extensions;
+    private static final String CURRENT_INDEX_KEY = "filetrans.reader.index";
 
-    public FileItemReader(String sourceDir, Set<String> extensions) {
-        Path dir = Path.of(sourceDir);
-        if (!Files.exists(dir)) {
-            throw new IllegalArgumentException("Source directory does not exist: " + dir);
+    private final Path sourceDir;
+    private final Extensions extensions;
+
+    private List<Path> files = List.of();
+    private int currentIndex;
+
+    public FileItemReader(String sourceDir, Extensions extensions) {
+        this.sourceDir = Path.of(sourceDir);
+        if (!Files.exists(this.sourceDir)) {
+            throw new IllegalArgumentException("Source directory does not exist: " + this.sourceDir);
         }
-        this.extensions = extensions == null ? Set.of() : extensions;
-        this.iterator = loadFiles(dir, this.extensions).iterator();
-        log.info("FileItemReader prepared for {}, available={}", dir, this.iterator.hasNext());
+        this.extensions = extensions == null ? Extensions.parse(null) : extensions;
+    }
+
+    @Override
+    public void open(ExecutionContext executionContext) throws ItemStreamException {
+        try {
+            this.files = Files.walk(sourceDir)
+                    .filter(Files::isRegularFile)
+                    .filter(extensions::accepts)
+                    .sorted()
+                    .toList();
+
+            this.currentIndex = readSavedIndex(executionContext);
+            if (currentIndex > files.size()) {
+                currentIndex = files.size();
+            }
+
+            log.info("FileItemReader opened {} files for {}, resuming at index {} (extensions={})",
+                    files.size(), sourceDir, currentIndex, extensions.values());
+        } catch (IOException e) {
+            throw new ItemStreamException("Failed to scan directory: " + sourceDir, e);
+        }
     }
 
     @Override
     public FileDescriptor read() {
-        if (iterator == null || !iterator.hasNext()) {
-            log.debug("FileItemReader exhausted");
-            return null; // Spring Batch signals end of input
+        if (currentIndex >= files.size()) {
+            log.debug("FileItemReader exhausted for {}", sourceDir);
+            return null;
         }
 
-        Path path = iterator.next();
-
+        Path path = files.get(currentIndex++);
         try {
             Instant lastModified = Files.getLastModifiedTime(path).toInstant();
             log.debug("FileItemReader returning {}", path);
             return new FileDescriptor(path, lastModified);
         } catch (IOException e) {
-            // Skip unreadable file, but do NOT fail the whole job
             log.warn("Skipping unreadable file {} ({})", path, e.getMessage());
-            return read(); // continue to next file
+            return read();
         }
     }
 
-    private static List<Path> loadFiles(Path dir, Set<String> extensions) {
-        try {
-            try (Stream<Path> stream = Files.walk(dir)) {
-                return stream
-                        .filter(Files::isRegularFile)
-                        .filter(path -> extensions.isEmpty() || extensions.contains(extensionOf(path)))
-                        .sorted()
-                        .toList();
+    @Override
+    public void update(ExecutionContext executionContext) throws ItemStreamException {
+        if (executionContext != null) {
+            executionContext.putInt(CURRENT_INDEX_KEY, currentIndex);
+        }
+    }
+
+    @Override
+    public void close() {
+        files = List.of();
+        currentIndex = 0;
+    }
+
+    private int readSavedIndex(ExecutionContext executionContext) {
+        if (executionContext == null) {
+            return 0;
+        }
+        if (executionContext.containsKey(CURRENT_INDEX_KEY)) {
+            Object value = executionContext.get(CURRENT_INDEX_KEY);
+            if (value instanceof Number number) {
+                return number.intValue();
             }
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to scan directory: " + dir, ex);
         }
-    }
-
-    private static String extensionOf(Path path) {
-        String name = path.getFileName().toString();
-        int idx = name.lastIndexOf('.');
-        if (idx < 0 || idx == name.length() - 1) {
-            return "";
-        }
-        return name.substring(idx + 1).toLowerCase();
+        return 0;
     }
 }

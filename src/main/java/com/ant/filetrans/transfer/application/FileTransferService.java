@@ -19,6 +19,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileTransferService {
 
+    public static final String SOURCE_DIR = "sourceDir";
+    public static final String BASE_DIR = "targetBaseDir";
+    public static final String TIMESTAMP = "timestamp";
+    public static final String FILE_PATH = "filePath";
     private final JobOperator jobOperator;       // batch 6 operator
     private final JobRepository jobRepository;   // metadata access
     private final Job photoImportJob;            // inject the Job bean directly
@@ -27,9 +31,9 @@ public class FileTransferService {
         log.info("Starting directory transfer job from {} to {} with extensions {}", sourceDir, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
-                .addString("sourceDir", sourceDir.toString())
-                .addString("targetBaseDir", targetBaseDir.toString())
-                .addLong("timestamp", System.currentTimeMillis());
+                .addString(SOURCE_DIR, sourceDir.toString())
+                .addString(BASE_DIR, targetBaseDir.toString())
+                .addLong(TIMESTAMP, System.currentTimeMillis());
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
 
@@ -42,10 +46,10 @@ public class FileTransferService {
         log.info("Starting single file transfer for {} -> {} with extensions {}", file, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
-                .addString("sourceDir", file.getParent().toString())
-                .addString("filePath", file.toString())
-                .addString("targetBaseDir", targetBaseDir.toString())
-                .addLong("timestamp", System.currentTimeMillis());
+                .addString(SOURCE_DIR, file.getParent().toString())
+                .addString(FILE_PATH, file.toString())
+                .addString(BASE_DIR, targetBaseDir.toString())
+                .addLong(TIMESTAMP, System.currentTimeMillis());
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
 
