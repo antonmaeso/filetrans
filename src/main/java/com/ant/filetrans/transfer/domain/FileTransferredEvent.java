@@ -1,4 +1,9 @@
 package com.ant.filetrans.transfer.domain;
 
-public class FileTransferredEvent {
+import java.nio.file.Path;
+
+/**
+ * Emitted after a file has been successfully moved.
+ */
+public record FileTransferredEvent(Path target) {
 }

@@ -2,6 +2,7 @@ package com.ant.filetrans.transfer.infrastructure.batch;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -11,6 +12,10 @@ import java.util.stream.Collectors;
  * Normalized set of extensions used to filter files.
  */
 public record Extensions(Set<String> values) {
+
+    public Extensions {
+        values = Collections.unmodifiableSet(new LinkedHashSet<>(values));
+    }
 
     private static final Extensions EMPTY = new Extensions(Set.of());
 
@@ -26,17 +31,21 @@ public record Extensions(Set<String> values) {
         if (normalized.isEmpty()) {
             return EMPTY;
         }
-        return new Extensions(Set.copyOf(normalized));
+        return new Extensions(normalized);
     }
 
     public static Extensions of(Set<String> extensions) {
         if (extensions == null || extensions.isEmpty()) {
             return EMPTY;
         }
-        return new Extensions(extensions.stream()
+        Set<String> normalized = extensions.stream()
                 .filter(Objects::nonNull)
                 .map(String::toLowerCase)
-                .collect(Collectors.toCollection(LinkedHashSet::new)));
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (normalized.isEmpty()) {
+            return EMPTY;
+        }
+        return new Extensions(normalized);
     }
 
     public boolean isEmpty() {

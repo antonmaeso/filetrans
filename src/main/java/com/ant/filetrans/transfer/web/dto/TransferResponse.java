@@ -1,4 +1,13 @@
 package com.ant.filetrans.transfer.web.dto;
 
-public record TransferResponse() {
-}
+import java.time.Instant;
+
+/**
+ * Response representing the transfer job.
+ */
+public record TransferResponse(
+        Long executionId,
+        String status,
+        Instant startTime,
+        Instant endTime
+) {}

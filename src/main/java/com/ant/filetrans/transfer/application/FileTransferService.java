@@ -1,5 +1,6 @@
 package com.ant.filetrans.transfer.application;
 
+import com.ant.filetrans.transfer.infrastructure.batch.Extensions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.job.Job;
@@ -12,7 +13,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -23,11 +23,12 @@ public class FileTransferService {
     public static final String BASE_DIR = "targetBaseDir";
     public static final String TIMESTAMP = "timestamp";
     public static final String FILE_PATH = "filePath";
-    private final JobOperator jobOperator;       // batch 6 operator
-    private final JobRepository jobRepository;   // metadata access
-    private final Job photoImportJob;            // inject the Job bean directly
 
-    public JobExecution transferDirectory(Path sourceDir, Path targetBaseDir, List<String> extensions) throws Exception {
+    private final JobOperator jobOperator;
+    private final JobRepository jobRepository;
+    private final Job photoImportJob;
+
+    public JobExecution transferDirectory(Path sourceDir, Path targetBaseDir, Extensions extensions) throws Exception {
         log.info("Starting directory transfer job from {} to {} with extensions {}", sourceDir, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
@@ -42,7 +43,7 @@ public class FileTransferService {
         return execution;
     }
 
-    public JobExecution transferSingleFile(Path file, Path targetBaseDir, List<String> extensions) throws Exception {
+    public JobExecution transferSingleFile(Path file, Path targetBaseDir, Extensions extensions) throws Exception {
         log.info("Starting single file transfer for {} -> {} with extensions {}", file, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
@@ -79,9 +80,9 @@ public class FileTransferService {
         jobOperator.stop(execution);
     }
 
-    private static JobParametersBuilder addExtensions(JobParametersBuilder builder, List<String> extensions) {
+    private static JobParametersBuilder addExtensions(JobParametersBuilder builder, Extensions extensions) {
         if (extensions != null && !extensions.isEmpty()) {
-            builder.addString("extensions", String.join(",", extensions));
+            builder.addString("extensions", extensions.asParameter());
         }
         return builder;
     }

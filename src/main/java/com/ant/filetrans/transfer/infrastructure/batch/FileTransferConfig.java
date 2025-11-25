@@ -2,6 +2,7 @@ package com.ant.filetrans.transfer.infrastructure.batch;
 
 import com.ant.filetrans.transfer.domain.FileDescriptor;
 import com.ant.filetrans.transfer.domain.MovedFile;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -17,24 +18,26 @@ import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.ItemStreamReader;
-import org.springframework.batch.infrastructure.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @EnableBatchProcessing
 @Configuration
+@RequiredArgsConstructor
 public class FileTransferConfig {
 
     private static final DateTimeFormatter YEAR = DateTimeFormatter.ofPattern("yyyy");
     private static final DateTimeFormatter DAY  = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private final ApplicationEventPublisher events;
+
 
     @Bean
     public Job photoImportJob(JobRepository jobRepository,
@@ -52,7 +55,7 @@ public class FileTransferConfig {
                              PlatformTransactionManager transactionManager,
                              ItemStreamReader<FileDescriptor> photoFileReader,
                              ItemProcessor<FileDescriptor, MovedFile> photoFileProcessor,
-                             ItemWriter<MovedFile> fileWriter,
+                             FileMoveItemWriter fileWriter,
                              StepExecutionListener stepExecutionLogger) {
 
         return new StepBuilder("FileTransferStep", jobRepository)
@@ -103,8 +106,8 @@ public class FileTransferConfig {
     @Bean
     @StepScope
     public ItemStreamReader<FileDescriptor> photoFileReader(
-            @org.springframework.beans.factory.annotation.Value("#{jobParameters['sourceDir']}") String sourceDir,
-            @org.springframework.beans.factory.annotation.Value("#{jobParameters['extensions']}") String extensionsParam) {
+            @Value("#{jobParameters['sourceDir']}") String sourceDir,
+            @Value("#{jobParameters['extensions']}") String extensionsParam) {
 
         Extensions extensions = Extensions.parse(extensionsParam);
         log.info("Creating reader for {} with extensions {}", sourceDir, extensions.values());
@@ -114,7 +117,7 @@ public class FileTransferConfig {
     @Bean
     @StepScope
     public ItemProcessor<FileDescriptor, MovedFile> photoFileProcessor(
-            @org.springframework.beans.factory.annotation.Value("#{jobParameters['targetBaseDir']}") String targetBaseDir) {
+            @Value("#{jobParameters['targetBaseDir']}") String targetBaseDir) {
 
         return file -> {
             var zdt  = file.lastModified().atZone(ZoneId.systemDefault());
@@ -129,21 +132,4 @@ public class FileTransferConfig {
         };
     }
 
-    @Bean
-    @StepScope
-    public ItemWriter<MovedFile> fileWriter() {
-        return chunk -> {
-            var items = chunk.getItems();
-            log.info("Moving {} files in current chunk", items.size());
-            for (MovedFile mp : items) {
-                Path source = mp.source();
-                Path target = mp.target();
-
-                Files.createDirectories(target.getParent());
-                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-
-                log.info("Moved {} -> {}", source, target);
-            }
-        };
-    }
 }
