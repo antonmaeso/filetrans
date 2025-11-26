@@ -7,7 +7,7 @@ import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MetadataJobOrchestrator {
 
-    private final JobOperator jobOperator;
+    private final JobLauncher jobLauncher;
     private final Job metadataExtractionJob;
     private final Job metadataCatalogJob;
 
@@ -31,7 +31,7 @@ public class MetadataJobOrchestrator {
         log.info("Metadata job parameters: targetBaseDir={}, timestamp={}, run.id={}",
                 event.targetBaseDir(), params.getLong("timestamp"), params.getString("run.id"));
         log.info("Starting metadataExtractionJob for {}, uuid {}", event.targetBaseDir(), params.getString("run.id"));
-        JobExecution extraction = jobOperator.start(metadataExtractionJob, params);
+        JobExecution extraction = jobLauncher.run(metadataExtractionJob, params);
         log.info("Metadata extraction job finished with status {}", extraction.getStatus());
         if (extraction.getStatus().isUnsuccessful()) {
             log.warn("Metadata extraction job failed: {}", extraction.getStatus());
@@ -39,7 +39,7 @@ public class MetadataJobOrchestrator {
         }
 
         log.info("Starting metadataCatalogJob for {}", event.targetBaseDir());
-        JobExecution catalog = jobOperator.start(metadataCatalogJob, params);
+        JobExecution catalog = jobLauncher.run(metadataCatalogJob, params);
         log.info("Metadata catalog job finished with status {}", catalog.getStatus());
     }
 }

@@ -9,8 +9,8 @@ public record MetadataCatalog(
 ) {
     public record CatalogEntry(
             String relativePath,
-            long size,
-            String contentType,
-            Instant lastModified
+            String metadataSidecar,
+            String fingerprintSha256,
+            String captureFingerprint
     ) {}
 }

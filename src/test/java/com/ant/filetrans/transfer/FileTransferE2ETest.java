@@ -1,6 +1,7 @@
 package com.ant.filetrans.transfer;
 
-import com.ant.filetrans.metadata.domain.FileMetadata;
+import com.ant.filetrans.metadata.api.FileMetadata;
+import com.ant.filetrans.metadata.api.MetadataKeys;
 import com.ant.filetrans.metadata.domain.MetadataCatalog;
 import com.ant.filetrans.transfer.application.FileTransferService;
 import com.ant.filetrans.transfer.infrastructure.batch.Extensions;
@@ -34,6 +35,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.batch.job.repository.type=jdbc"
 })
 class FileTransferE2ETest {
+
+    private static final String PHOTO_SHA256 = "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea";
 
     @Autowired
     private FileTransferService fileTransferService;
@@ -84,6 +87,8 @@ class FileTransferE2ETest {
         waitForFile(sidecar);
         FileMetadata metadata = objectMapper.readValue(sidecar.toFile(), FileMetadata.class);
         assertThat(metadata.file()).isEqualTo(expectedLocation);
+        assertThat(metadata.get(MetadataKeys.FINGERPRINT_SHA256, String.class)).isEqualTo(PHOTO_SHA256);
+        assertThat(metadata.get(MetadataKeys.CAPTURE_FINGERPRINT, String.class)).isNull();
 
         Path catalog = targetDir.resolve("metadata_catalog.json");
         waitForFile(catalog);
@@ -91,6 +96,12 @@ class FileTransferE2ETest {
         assertThat(metadataCatalog.entries())
                 .extracting(MetadataCatalog.CatalogEntry::relativePath)
                 .contains("2024/2024-03-30/photo.jpg");
+        assertThat(metadataCatalog.entries())
+                .extracting(MetadataCatalog.CatalogEntry::fingerprintSha256)
+                .contains(PHOTO_SHA256);
+        assertThat(metadataCatalog.entries())
+                .extracting(MetadataCatalog.CatalogEntry::captureFingerprint)
+                .containsOnlyNulls();
     }
 
     private void waitForFile(Path file) throws InterruptedException {

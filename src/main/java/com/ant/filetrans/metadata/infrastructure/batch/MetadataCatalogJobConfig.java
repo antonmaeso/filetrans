@@ -1,7 +1,8 @@
 package com.ant.filetrans.metadata.infrastructure.batch;
 
+import com.ant.filetrans.metadata.api.FileMetadata;
+import com.ant.filetrans.metadata.api.MetadataKeys;
 import com.ant.filetrans.metadata.application.MetadataPersistenceService;
-import com.ant.filetrans.metadata.domain.FileMetadata;
 import com.ant.filetrans.metadata.domain.MetadataCatalog;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -67,11 +68,14 @@ public class MetadataCatalogJobConfig {
         return jsonPath -> {
             FileMetadata metadata = objectMapper.readValue(jsonPath.toFile(), FileMetadata.class);
             Path relative = root.relativize(metadata.file());
+            Path sidecarRelative = root.relativize(jsonPath);
+            String fingerprint = metadata.get(MetadataKeys.FINGERPRINT_SHA256, String.class);
+            String captureFingerprint = metadata.get(MetadataKeys.CAPTURE_FINGERPRINT, String.class);
             return new MetadataCatalog.CatalogEntry(
                     relative.toString(),
-                    metadata.size(),
-                    metadata.contentType(),
-                    metadata.lastModified()
+                    sidecarRelative.toString(),
+                    fingerprint,
+                    captureFingerprint
             );
         };
     }

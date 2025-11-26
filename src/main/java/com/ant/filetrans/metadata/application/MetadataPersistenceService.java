@@ -1,7 +1,7 @@
 package com.ant.filetrans.metadata.application;
 
+import com.ant.filetrans.metadata.api.FileMetadata;
 import com.ant.filetrans.metadata.domain.MetadataCatalog;
-import com.ant.filetrans.metadata.domain.MetadataProcessingResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

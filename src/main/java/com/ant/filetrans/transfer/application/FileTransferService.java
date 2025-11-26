@@ -3,12 +3,14 @@ package com.ant.filetrans.transfer.application;
 import com.ant.filetrans.transfer.infrastructure.batch.Extensions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.batch.core.job.parameters.JobParameters;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobExecutionNotRunningException;
-import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +27,7 @@ public class FileTransferService {
     public static final String TIMESTAMP = "timestamp";
     public static final String FILE_PATH = "filePath";
 
-    private final JobOperator jobOperator;
+    private final JobLauncher jobLauncher;
     private final JobRepository jobRepository;
     private final Job photoImportJob;
 
@@ -40,7 +42,7 @@ public class FileTransferService {
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
 
-        JobExecution execution = jobOperator.start(photoImportJob, params);
+        JobExecution execution = jobLauncher.run(photoImportJob, params);
         log.info("Directory transfer job {} started", execution.getId());
         return execution;
     }
@@ -57,7 +59,7 @@ public class FileTransferService {
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
 
-        JobExecution execution = jobOperator.start(photoImportJob, params);
+        JobExecution execution = jobLauncher.run(photoImportJob, params);
         log.info("Single file transfer job {} started", execution.getId());
         return execution;
     }
@@ -79,8 +81,15 @@ public class FileTransferService {
             throw new IllegalArgumentException("No JobExecution with id " + executionId);
         }
 
+        if (!execution.isRunning()) {
+            log.warn("Attempted to stop job execution {} but it is not running", executionId);
+            throw new JobExecutionNotRunningException("JobExecution " + executionId + " is not running");
+        }
+
         log.info("Stopping job execution {}", executionId);
-        jobOperator.stop(execution);
+        execution.setStatus(BatchStatus.STOPPING);
+        execution.setExitStatus(ExitStatus.STOPPED);
+        jobRepository.update(execution);
     }
 
     private static JobParametersBuilder addExtensions(JobParametersBuilder builder, Extensions extensions) {

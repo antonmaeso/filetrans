@@ -2,9 +2,9 @@ package com.ant.filetrans.metadata.application;
 
 import com.ant.filetrans.metadata.MetadataConfig;
 import com.ant.filetrans.metadata.MetadataTestConfiguration;
-import com.ant.filetrans.metadata.domain.FileMetadata;
+import com.ant.filetrans.metadata.api.FileMetadata;
 import com.ant.filetrans.metadata.domain.MetadataCatalog;
-import com.ant.filetrans.metadata.domain.MetadataProcessingResult;
+import com.ant.filetrans.metadata.application.MetadataProcessingResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +16,6 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-
 @SpringBootTest(classes = {MetadataConfig.class, MetadataPersistenceService.class, MetadataTestConfiguration.class})
 class MetadataPersistenceServiceTest {
 
@@ -25,7 +23,7 @@ class MetadataPersistenceServiceTest {
     private MetadataPersistenceService persistenceService;
 
     @Autowired
-    private MetadataWorkService workService;
+    private MetadataTestConfiguration.RecordingMetadataWorkService workService;
 
     @TempDir
     Path tempDir;
@@ -33,7 +31,7 @@ class MetadataPersistenceServiceTest {
     @Test
     void writesMetadataSidecarAndMarksProcessed() throws Exception {
         Path file = Files.writeString(tempDir.resolve("image.jpg"), "test");
-        FileMetadata metadata = new FileMetadata(file, 4, "text/plain", Instant.now());
+        FileMetadata metadata = new FileMetadata(file, 4, "text/plain", Instant.now(), java.util.Map.of());
         MetadataProcessingResult result = new MetadataProcessingResult(42L, metadata);
 
         persistenceService.writeMetadata(result);
@@ -43,7 +41,7 @@ class MetadataPersistenceServiceTest {
 
         String json = Files.readString(sidecar);
         assertThat(json).contains("text/plain");
-        verify(workService).markProcessed(42L);
+        assertThat(workService.lastProcessedId()).contains(42L);
     }
 
     @Test
@@ -51,7 +49,10 @@ class MetadataPersistenceServiceTest {
         Path root = Files.createDirectories(tempDir.resolve("catalog"));
 
         MetadataCatalog.CatalogEntry entry = new MetadataCatalog.CatalogEntry(
-                "image.jpg", 4, "text/plain", Instant.now());
+                "image.jpg",
+                "image.jpg.metadata.json",
+                "dummyhash",
+                "capture");
 
         persistenceService.writeCatalog(root, List.of(entry));
 
@@ -59,5 +60,7 @@ class MetadataPersistenceServiceTest {
         assertThat(catalog).exists();
         String json = Files.readString(catalog);
         assertThat(json).contains("image.jpg");
+        assertThat(json).contains("dummyhash");
+        assertThat(json).contains("capture");
     }
 }

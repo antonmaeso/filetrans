@@ -2,7 +2,7 @@ package com.ant.filetrans.metadata.infrastructure.batch;
 
 import com.ant.filetrans.metadata.application.FileMetadataService;
 import com.ant.filetrans.metadata.application.MetadataPersistenceService;
-import com.ant.filetrans.metadata.domain.MetadataProcessingResult;
+import com.ant.filetrans.metadata.application.MetadataProcessingResult;
 import com.ant.filetrans.metadata.infrastructure.persistence.MetadataWorkItemEntity;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
