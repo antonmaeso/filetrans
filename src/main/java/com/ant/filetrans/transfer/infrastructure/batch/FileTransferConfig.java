@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.EnableJdbcJobRepository;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
@@ -30,9 +31,12 @@ import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @EnableBatchProcessing
+@EnableJdbcJobRepository
 @Configuration
 @RequiredArgsConstructor
 public class FileTransferConfig {
+
+    public static final String BASE_DIR_PARAM = "targetBaseDir";
 
     private static final DateTimeFormatter YEAR = DateTimeFormatter.ofPattern("yyyy");
     private static final DateTimeFormatter DAY  = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -42,10 +46,12 @@ public class FileTransferConfig {
     @Bean
     public Job photoImportJob(JobRepository jobRepository,
                              Step transferStep,
-                             JobExecutionListener jobExecutionLogger) {
+                             JobExecutionListener jobExecutionLogger,
+                             TransferJobCompletionPublisher completionPublisher) {
 
         return new JobBuilder("photoImportJob", jobRepository)
                 .listener(jobExecutionLogger)
+                .listener(completionPublisher)
                 .start(transferStep)
                 .build();
     }

@@ -13,6 +13,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -32,9 +33,10 @@ public class FileTransferService {
         log.info("Starting directory transfer job from {} to {} with extensions {}", sourceDir, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
-                .addString(SOURCE_DIR, sourceDir.toString())
-                .addString(BASE_DIR, targetBaseDir.toString())
-                .addLong(TIMESTAMP, System.currentTimeMillis());
+                .addString(SOURCE_DIR, sourceDir.toString(), false)
+                .addString(BASE_DIR, targetBaseDir.toString(), false)
+                .addLong(TIMESTAMP, System.currentTimeMillis(), false)
+                .addString("run.id", UUID.randomUUID().toString(), true);
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
 
@@ -47,10 +49,11 @@ public class FileTransferService {
         log.info("Starting single file transfer for {} -> {} with extensions {}", file, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
-                .addString(SOURCE_DIR, file.getParent().toString())
-                .addString(FILE_PATH, file.toString())
-                .addString(BASE_DIR, targetBaseDir.toString())
-                .addLong(TIMESTAMP, System.currentTimeMillis());
+                .addString(SOURCE_DIR, file.getParent().toString(), false)
+                .addString(FILE_PATH, file.toString(), false)
+                .addString(BASE_DIR, targetBaseDir.toString(), false)
+                .addLong(TIMESTAMP, System.currentTimeMillis(), false)
+                .addString("run.id", UUID.randomUUID().toString(), true);
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
 
