@@ -24,4 +24,8 @@ public final class MetadataKeys {
     public static final String FINGERPRINT_SHA256 = "fingerprint.sha256";
     public static final String CAPTURE_FINGERPRINT = "capture.fingerprint";
 
+    public static final String AI_DESCRIPTION = "ai.description";
+    public static final String AI_TAGS = "ai.tags";
+    public static final String AI_CONFIDENCE = "ai.confidence";
+
 }
