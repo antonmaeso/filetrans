@@ -2,6 +2,7 @@ package com.ant.filetrans.transfer.infrastructure.batch;
 
 import com.ant.filetrans.transfer.domain.FileDescriptor;
 import com.ant.filetrans.transfer.domain.MovedFile;
+import com.ant.filetrans.transfer.application.FileMoveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
@@ -136,6 +137,15 @@ public class FileTransferConfig {
             log.debug("Prepared move {} -> {}", file.path(), target);
             return new MovedFile(file.path(), target);
         };
+    }
+
+    @Bean
+    @StepScope
+    public FileMoveItemWriter fileWriter(FileMoveService fileMoveService,
+                                         @Value("#{jobParameters['targetBaseDir']}") String targetBaseDir,
+                                         com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        DuplicateCatalogChecker duplicateCatalogChecker = new DuplicateCatalogChecker(Path.of(targetBaseDir), objectMapper);
+        return new FileMoveItemWriter(fileMoveService, duplicateCatalogChecker);
     }
 
 }
