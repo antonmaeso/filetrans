@@ -25,6 +25,13 @@ spring:
       mode: always
       schema-locations: classpath:org/springframework/batch/core/schema-drop-h2.sql,classpath:org/springframework/batch/core/schema-h2.sql
 
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: llava:7b
+
 logging:
   level:
     com.ant.filetrans: DEBUG

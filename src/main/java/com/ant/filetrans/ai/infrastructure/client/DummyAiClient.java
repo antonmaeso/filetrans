@@ -3,6 +3,7 @@ package com.ant.filetrans.ai.infrastructure.client;
 import com.ant.filetrans.ai.api.AiMetadata;
 import com.ant.filetrans.ai.application.AiClient;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@Profile("!ollama")
 public class DummyAiClient implements AiClient {
 
     @Override
