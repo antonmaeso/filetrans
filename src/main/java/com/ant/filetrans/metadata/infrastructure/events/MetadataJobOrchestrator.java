@@ -23,8 +23,8 @@ public class MetadataJobOrchestrator {
     @EventListener
     public void onTransferCompleted(TransferJobCompletedEvent event) throws Exception {
         JobParameters params = new JobParametersBuilder()
-                .addString("targetBaseDir", event.targetBaseDir(), false)
-                .addLong("timestamp", System.currentTimeMillis(), false)
+                .addString("targetBaseDir", event.targetBaseDir(), true)
+                .addLong("timestamp", System.currentTimeMillis(), true)
                 .addString("run.id", java.util.UUID.randomUUID().toString(), true)
                 .toJobParameters();
 

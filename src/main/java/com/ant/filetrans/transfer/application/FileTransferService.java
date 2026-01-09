@@ -35,9 +35,9 @@ public class FileTransferService {
         log.info("Starting directory transfer job from {} to {} with extensions {}", sourceDir, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
-                .addString(SOURCE_DIR, sourceDir.toString(), false)
-                .addString(BASE_DIR, targetBaseDir.toString(), false)
-                .addLong(TIMESTAMP, System.currentTimeMillis(), false)
+                .addString(SOURCE_DIR, sourceDir.toString(), true)
+                .addString(BASE_DIR, targetBaseDir.toString(), true)
+                .addLong(TIMESTAMP, System.currentTimeMillis(), true)
                 .addString("run.id", UUID.randomUUID().toString(), true);
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();
@@ -51,10 +51,10 @@ public class FileTransferService {
         log.info("Starting single file transfer for {} -> {} with extensions {}", file, targetBaseDir, extensions);
 
         JobParametersBuilder builder = new JobParametersBuilder()
-                .addString(SOURCE_DIR, file.getParent().toString(), false)
-                .addString(FILE_PATH, file.toString(), false)
-                .addString(BASE_DIR, targetBaseDir.toString(), false)
-                .addLong(TIMESTAMP, System.currentTimeMillis(), false)
+                .addString(SOURCE_DIR, file.getParent().toString(), true)
+                .addString(FILE_PATH, file.toString(), true)
+                .addString(BASE_DIR, targetBaseDir.toString(), true)
+                .addLong(TIMESTAMP, System.currentTimeMillis(), true)
                 .addString("run.id", UUID.randomUUID().toString(), true);
         addExtensions(builder, extensions);
         JobParameters params = builder.toJobParameters();

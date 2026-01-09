@@ -40,10 +40,7 @@ public class FileItemReader implements ItemStreamReader<FileDescriptor> {
                     .sorted()
                     .toList();
 
-            this.currentIndex = readSavedIndex(executionContext);
-            if (currentIndex > files.size()) {
-                currentIndex = files.size();
-            }
+            this.currentIndex = 0;
 
             log.info("FileItemReader opened {} files for {}, resuming at index {} (extensions={})",
                     files.size(), sourceDir, currentIndex, extensions.values());
