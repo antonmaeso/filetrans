@@ -80,16 +80,5 @@ public class FileItemReader implements ItemStreamReader<FileDescriptor> {
         currentIndex = 0;
     }
 
-    private int readSavedIndex(ExecutionContext executionContext) {
-        if (executionContext == null) {
-            return 0;
-        }
-        if (executionContext.containsKey(CURRENT_INDEX_KEY)) {
-            Object value = executionContext.get(CURRENT_INDEX_KEY);
-            if (value instanceof Number number) {
-                return number.intValue();
-            }
-        }
-        return 0;
-    }
+
 }

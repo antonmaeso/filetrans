@@ -1,6 +1,5 @@
 package com.ant.filetrans.metadata.application.extract;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 

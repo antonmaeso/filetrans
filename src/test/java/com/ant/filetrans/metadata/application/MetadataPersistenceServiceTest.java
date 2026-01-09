@@ -4,7 +4,6 @@ import com.ant.filetrans.metadata.MetadataConfig;
 import com.ant.filetrans.metadata.MetadataTestConfiguration;
 import com.ant.filetrans.metadata.api.FileMetadata;
 import com.ant.filetrans.metadata.domain.MetadataCatalog;
-import com.ant.filetrans.metadata.application.MetadataProcessingResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
