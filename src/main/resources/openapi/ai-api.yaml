@@ -1,0 +1,90 @@
+openapi: 3.0.3
+info:
+  title: AI Analysis API
+  description: API for triggering AI-based image analysis
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /ai/analyze:
+    post:
+      summary: Trigger AI analysis for a specific image
+      description: |
+        Initiates AI-based analysis for a JPG or JPEG image file.
+        The analysis generates metadata such as descriptions, tags, and confidence scores.
+      operationId: analyzeAi
+      parameters:
+        - name: path
+          in: query
+          required: true
+          description: Path to the JPG or JPEG image file to analyze
+          schema:
+            type: string
+            pattern: '(?i).*\.(jpg|jpeg)$'
+          example: "/Users/anton/Pictures/Imported/2024/2024-01-15/DSC_2345.JPG"
+      responses:
+        '200':
+          description: AI analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeAiResponse'
+              example:
+                message: "AI analysis completed for image"
+                path: "/Users/anton/Pictures/Imported/2024/2024-01-15/DSC_2345.JPG"
+        '202':
+          description: AI analysis accepted and triggered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeAiResponse'
+              example:
+                message: "AI analysis triggered for image"
+                path: "/Users/anton/Pictures/Imported/2024/2024-01-15/DSC_2345.JPG"
+        '400':
+          description: Invalid request (missing path parameter or invalid file extension)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AnalyzeAiResponse:
+      type: object
+      description: Confirmation response for AI analysis request
+      required:
+        - message
+        - path
+      properties:
+        message:
+          type: string
+          description: Confirmation message indicating analysis status
+          example: "AI analysis triggered for image"
+        path:
+          type: string
+          description: Image file path being analyzed
+          example: "/Users/anton/Pictures/Imported/2024/2024-01-15/DSC_2345.JPG"
+
+    ErrorResponse:
+      type: object
+      description: Error response for validation failures
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+        status:
+          type: integer
+          description: HTTP status code
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Detailed error message
+        path:
+          type: string
+          description: Request path that caused the error

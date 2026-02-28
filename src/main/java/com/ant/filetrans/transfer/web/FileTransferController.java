@@ -1,18 +1,26 @@
 package com.ant.filetrans.transfer.web;
 
-import com.ant.filetrans.transfer.application.FileTransferService;
-import com.ant.filetrans.transfer.application.TransferCommand;
-import com.ant.filetrans.transfer.web.dto.CreateTransferRequest;
-import com.ant.filetrans.transfer.web.mapper.TransferDtoMapper;
-import com.ant.filetrans.transfer.web.dto.TransferResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.net.URI;
+
 import org.springframework.batch.core.job.JobExecution;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
+import com.ant.filetrans.transfer.api.model.CreateTransferRequest;
+import com.ant.filetrans.transfer.api.model.TransferResponse;
+import com.ant.filetrans.transfer.application.FileTransferService;
+import com.ant.filetrans.transfer.application.TransferCommand;
+import com.ant.filetrans.transfer.web.mapper.TransferApiMapper;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 /**
  * REST controller for file transfer jobs.
  *
@@ -46,17 +54,10 @@ public class FileTransferController {
      *  }
      */
     @PostMapping
-    public ResponseEntity<TransferResponse> createTransfer(@RequestBody CreateTransferRequest req) throws Exception {
-        log.info("Received transfer request: {}", req);
+    public ResponseEntity<TransferResponse> createTransfer(@Valid @RequestBody CreateTransferRequest request) throws Exception {
+        log.info("Received transfer request: {}", request);
 
-        if (isBlank(req.targetBaseDir())) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (isBlank(req.sourceDir()) && isBlank(req.filePath())) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        TransferCommand command = TransferDtoMapper.toCommand(req);
+        TransferCommand command = TransferApiMapper.toCommand(request);
         JobExecution exec;
 
         // If filePath is provided → run single-file transfer
@@ -76,7 +77,7 @@ public class FileTransferController {
         }
 
         Long executionId = exec.getId();
-        TransferResponse body = TransferDtoMapper.fromJobExecution(exec);
+        TransferResponse response = TransferApiMapper.fromJobExecution(exec);
 
         // Location: /transfers/{executionId}
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -89,7 +90,7 @@ public class FileTransferController {
         // 202 Accepted is idiomatic for async/batch work
         return ResponseEntity.accepted()
                 .location(location)
-                .body(body);
+                .body(response);
     }
 
     /**
@@ -105,10 +106,7 @@ public class FileTransferController {
             return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(TransferDtoMapper.fromJobExecution(exec));
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
+        TransferResponse response = TransferApiMapper.fromJobExecution(exec);
+        return ResponseEntity.ok(response);
     }
 }

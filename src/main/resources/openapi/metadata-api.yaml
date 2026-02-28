@@ -1,0 +1,80 @@
+openapi: 3.0.3
+info:
+  title: Metadata API
+  description: API for managing metadata extraction and catalog operations
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /api/metadata/analyze:
+    post:
+      summary: Trigger metadata analysis for a directory
+      description: |
+        Initiates metadata extraction (EXIF data, file hashes) and sidecar generation
+        for all supported files in the specified directory.
+      operationId: analyzeMetadata
+      parameters:
+        - name: targetBaseDir
+          in: query
+          required: true
+          description: Directory path to analyze for metadata extraction
+          schema:
+            type: string
+          example: "/Users/anton/Pictures/Imported/2024/2024-01-15"
+      responses:
+        '202':
+          description: Metadata analysis accepted and triggered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeMetadataResponse'
+              example:
+                message: "Metadata analysis triggered for directory"
+                targetBaseDir: "/Users/anton/Pictures/Imported/2024/2024-01-15"
+        '400':
+          description: Invalid request (missing or invalid targetBaseDir parameter)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AnalyzeMetadataResponse:
+      type: object
+      description: Confirmation response for metadata analysis request
+      required:
+        - message
+        - targetBaseDir
+      properties:
+        message:
+          type: string
+          description: Confirmation message indicating analysis was triggered
+          example: "Metadata analysis triggered for directory"
+        targetBaseDir:
+          type: string
+          description: Directory path being analyzed
+          example: "/Users/anton/Pictures/Imported/2024/2024-01-15"
+
+    ErrorResponse:
+      type: object
+      description: Error response for validation failures
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+        status:
+          type: integer
+          description: HTTP status code
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Detailed error message
+        path:
+          type: string
+          description: Request path that caused the error

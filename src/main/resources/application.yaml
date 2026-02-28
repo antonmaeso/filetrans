@@ -36,6 +36,13 @@ logging:
   level:
     com.ant.filetrans: DEBUG
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
 management:
   endpoints:
     web:

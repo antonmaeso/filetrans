@@ -33,6 +33,8 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
 		<spring-modulith.version>2.0.0-RC1</spring-modulith.version>
 		<spring-ai.version>1.0.0</spring-ai.version>
+		<openapi-generator.version>7.2.0</openapi-generator.version>
+		<jqwik.version>1.8.2</jqwik.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -89,6 +91,11 @@
 			<artifactId>metadata-extractor</artifactId>
 			<version>2.18.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.8.4</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -115,6 +122,20 @@
 			<artifactId>spring-modulith-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>net.jqwik</groupId>
+			<artifactId>jqwik</artifactId>
+			<version>${jqwik.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate.validator</groupId>
+			<artifactId>hibernate-validator</artifactId>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -137,6 +158,112 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>${openapi-generator.version}</version>
+				<executions>
+					<!-- Transfer Module -->
+					<execution>
+						<id>generate-transfer-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/transfer-api.yaml</inputSpec>
+							<generatorName>java</generatorName>
+							<library>native</library>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<modelPackage>com.ant.filetrans.transfer.api.model</modelPackage>
+							<generateApis>false</generateApis>
+							<generateModels>true</generateModels>
+							<generateModelTests>false</generateModelTests>
+							<generateModelDocumentation>false</generateModelDocumentation>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<configOptions>
+								<useJakartaEe>true</useJakartaEe>
+								<dateLibrary>java8</dateLibrary>
+								<useBeanValidation>true</useBeanValidation>
+								<performBeanValidation>true</performBeanValidation>
+								<useOptional>false</useOptional>
+							</configOptions>
+						</configuration>
+					</execution>
+					
+					<!-- Metadata Module -->
+					<execution>
+						<id>generate-metadata-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/metadata-api.yaml</inputSpec>
+							<generatorName>java</generatorName>
+							<library>native</library>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<modelPackage>com.ant.filetrans.metadata.api.model</modelPackage>
+							<generateApis>false</generateApis>
+							<generateModels>true</generateModels>
+							<generateModelTests>false</generateModelTests>
+							<generateModelDocumentation>false</generateModelDocumentation>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<configOptions>
+								<useJakartaEe>true</useJakartaEe>
+								<dateLibrary>java8</dateLibrary>
+								<useBeanValidation>true</useBeanValidation>
+								<performBeanValidation>true</performBeanValidation>
+								<useOptional>false</useOptional>
+							</configOptions>
+						</configuration>
+					</execution>
+					
+					<!-- AI Module -->
+					<execution>
+						<id>generate-ai-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/ai-api.yaml</inputSpec>
+							<generatorName>java</generatorName>
+							<library>native</library>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<modelPackage>com.ant.filetrans.ai.api.model</modelPackage>
+							<generateApis>false</generateApis>
+							<generateModels>true</generateModels>
+							<generateModelTests>false</generateModelTests>
+							<generateModelDocumentation>false</generateModelDocumentation>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<configOptions>
+								<useJakartaEe>true</useJakartaEe>
+								<dateLibrary>java8</dateLibrary>
+								<useBeanValidation>true</useBeanValidation>
+								<performBeanValidation>true</performBeanValidation>
+								<useOptional>false</useOptional>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<executions>
+					<execution>
+						<id>add-generated-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>

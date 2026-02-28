@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: File Transfer API
+  description: API for managing file transfer jobs
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /transfers:
+    post:
+      summary: Create a new file transfer job
+      description: |
+        Creates a new transfer job for either a directory (bulk transfer) or a single file.
+        Provide either sourceDir for directory transfer or filePath for single file transfer.
+      operationId: createTransfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+            examples:
+              directoryTransfer:
+                summary: Directory transfer
+                value:
+                  sourceDir: "/Volumes/Camera/DCIM/101NZ7_2"
+                  targetBaseDir: "/Users/anton/Pictures/Imported"
+                  extensions: ["jpg", "jpeg", "raw"]
+              singleFileTransfer:
+                summary: Single file transfer
+                value:
+                  filePath: "/Volumes/Camera/DCIM/101NZ7_2/DSC_2345.JPG"
+                  targetBaseDir: "/Users/anton/Pictures/Imported"
+      responses:
+        '202':
+          description: Transfer job accepted and started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        '400':
+          description: Invalid request (missing required fields or validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transfers/{executionId}:
+    get:
+      summary: Get transfer job status
+      description: Retrieves the current status of a transfer job by its execution ID
+      operationId: getTransfer
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          description: The job execution ID returned when the transfer was created
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Transfer job found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        '404':
+          description: Transfer job not found
+
+components:
+  schemas:
+    CreateTransferRequest:
+      type: object
+      description: Request to create a file transfer job
+      required:
+        - targetBaseDir
+      properties:
+        sourceDir:
+          type: string
+          description: Source directory for bulk transfer (mutually exclusive with filePath)
+          example: "/Volumes/Camera/DCIM/101NZ7_2"
+        targetBaseDir:
+          type: string
+          minLength: 1
+          description: Destination base directory where files will be organized by date
+          example: "/Users/anton/Pictures/Imported"
+        filePath:
+          type: string
+          description: Single file path for individual transfer (mutually exclusive with sourceDir)
+          example: "/Volumes/Camera/DCIM/101NZ7_2/DSC_2345.JPG"
+        extensions:
+          type: array
+          description: Optional list of file extensions to filter (case-insensitive)
+          items:
+            type: string
+          example: ["jpg", "jpeg", "raw"]
+
+    TransferResponse:
+      type: object
+      description: Transfer job status information
+      required:
+        - executionId
+        - status
+      properties:
+        executionId:
+          type: integer
+          format: int64
+          description: Unique job execution ID
+          example: 12345
+        status:
+          type: string
+          description: Current job status
+          example: "COMPLETED"
+          enum:
+            - STARTING
+            - STARTED
+            - STOPPING
+            - STOPPED
+            - FAILED
+            - COMPLETED
+            - ABANDONED
+            - UNKNOWN
+        startTime:
+          type: string
+          format: date-time
+          description: Job start timestamp (ISO 8601)
+          example: "2024-01-15T10:30:00Z"
+        endTime:
+          type: string
+          format: date-time
+          description: Job end timestamp (ISO 8601)
+          example: "2024-01-15T10:35:00Z"
+
+    ErrorResponse:
+      type: object
+      description: Error response for validation failures
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+        status:
+          type: integer
+          description: HTTP status code
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Detailed error message
+        path:
+          type: string
+          description: Request path that caused the error
