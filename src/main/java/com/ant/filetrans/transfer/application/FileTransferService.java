@@ -15,7 +15,10 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -90,6 +93,112 @@ public class FileTransferService {
         execution.setStatus(BatchStatus.STOPPING);
         execution.setExitStatus(ExitStatus.STOPPED);
         jobRepository.update(execution);
+    }
+
+    /**
+     * Get all job executions with pagination support.
+     * Returns executions sorted by start time descending (most recent first).
+     *
+     * @param page zero-based page number
+     * @param size number of items per page
+     * @return list of job executions for the requested page
+     */
+    public List<JobExecution> getAllJobExecutions(int page, int size) {
+        log.debug("Fetching job executions page {} with size {}", page, size);
+        
+        // Get all job instances for our photoImportJob
+        List<org.springframework.batch.core.job.JobInstance> jobInstances = 
+                jobRepository.findJobInstances(photoImportJob.getName());
+        
+        // Collect all executions from all job instances
+        List<JobExecution> allExecutions = jobInstances.stream()
+                .flatMap(instance -> jobRepository.findJobExecutions(instance).stream())
+                .sorted(Comparator.comparing(
+                        JobExecution::getStartTime,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
+                .collect(Collectors.toList());
+        
+        // Apply pagination
+        int start = page * size;
+        int end = Math.min(start + size, allExecutions.size());
+        
+        if (start >= allExecutions.size()) {
+            return List.of();
+        }
+        
+        return allExecutions.subList(start, end);
+    }
+
+    /**
+     * Get total count of job executions.
+     *
+     * @return total number of job executions
+     */
+    public long getTotalJobExecutionCount() {
+        List<org.springframework.batch.core.job.JobInstance> jobInstances = 
+                jobRepository.findJobInstances(photoImportJob.getName());
+        
+        return jobInstances.stream()
+                .mapToLong(instance -> jobRepository.findJobExecutions(instance).size())
+                .sum();
+    }
+
+    /**
+     * Delete a job execution and its related records.
+     * Note: This does NOT delete the transferred files, only the job execution records.
+     *
+     * @param executionId the job execution ID to delete
+     * @throws IllegalStateException if the job is currently running
+     */
+    public void deleteJobExecution(long executionId) {
+        JobExecution execution = jobRepository.getJobExecution(executionId);
+        if (execution == null) {
+            throw new IllegalArgumentException("JobExecution " + executionId + " not found");
+        }
+
+        if (execution.isRunning()) {
+            throw new IllegalStateException("Cannot delete running job execution " + executionId);
+        }
+
+        log.info("Deleting job execution {}", executionId);
+        jobRepository.deleteJobExecution(execution);
+    }
+
+    /**
+     * Retry a failed job execution by creating a new execution with the same parameters.
+     *
+     * @param executionId the original job execution ID
+     * @return the new job execution
+     * @throws Exception if job launch fails
+     */
+    public JobExecution retryJobExecution(long executionId) throws Exception {
+        JobExecution originalExecution = jobRepository.getJobExecution(executionId);
+        if (originalExecution == null) {
+            throw new IllegalArgumentException("JobExecution " + executionId + " not found");
+        }
+
+        if (originalExecution.getStatus() != BatchStatus.FAILED) {
+            throw new IllegalStateException("Can only retry FAILED jobs, but job " + executionId + " has status " + originalExecution.getStatus());
+        }
+
+        log.info("Retrying job execution {}", executionId);
+        
+        // Extract original parameters
+        JobParameters originalParams = originalExecution.getJobParameters();
+        
+        // Create new parameters with a new run.id to make it unique
+        JobParametersBuilder builder = new JobParametersBuilder(originalParams)
+                .addString("run.id", UUID.randomUUID().toString(), true)
+                .addLong(TIMESTAMP, System.currentTimeMillis(), true);
+        
+        JobParameters newParams = builder.toJobParameters();
+        
+        // Launch new job with same parameters
+        JobExecution newExecution = jobLauncher.run(photoImportJob, newParams);
+        log.info("Retried job {} as new execution {}", executionId, newExecution.getId());
+        
+        return newExecution;
     }
 
     private static JobParametersBuilder addExtensions(JobParametersBuilder builder, Extensions extensions) {

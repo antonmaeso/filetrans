@@ -134,6 +134,58 @@ components:
           description: Job end timestamp (ISO 8601)
           example: "2024-01-15T10:35:00Z"
 
+    TransferListResponse:
+      type: object
+      description: Transfer job list item with summary information
+      required:
+        - executionId
+        - sourcePath
+        - targetPath
+        - status
+        - startTime
+        - fileCount
+      properties:
+        executionId:
+          type: integer
+          format: int64
+          description: Unique job execution ID
+          example: 12345
+        sourcePath:
+          type: string
+          description: Source directory or file path for the transfer
+          example: "/Volumes/Camera/DCIM/101NZ7_2"
+        targetPath:
+          type: string
+          description: Target base directory where files were transferred
+          example: "/Users/anton/Pictures/Imported"
+        status:
+          type: string
+          description: Current job status
+          example: "COMPLETED"
+          enum:
+            - STARTING
+            - STARTED
+            - STOPPING
+            - STOPPED
+            - FAILED
+            - COMPLETED
+            - ABANDONED
+            - UNKNOWN
+        startTime:
+          type: string
+          format: date-time
+          description: Job start timestamp (ISO 8601)
+          example: "2024-01-15T10:30:00Z"
+        endTime:
+          type: string
+          format: date-time
+          description: Job end timestamp (ISO 8601), null if job is still running
+          example: "2024-01-15T10:35:00Z"
+        fileCount:
+          type: integer
+          description: Number of files processed in this transfer
+          example: 42
+
     ErrorResponse:
       type: object
       description: Error response for validation failures

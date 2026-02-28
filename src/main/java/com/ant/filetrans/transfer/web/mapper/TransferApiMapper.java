@@ -10,6 +10,7 @@ import java.util.Set;
 import org.springframework.batch.core.job.JobExecution;
 
 import com.ant.filetrans.transfer.api.model.CreateTransferRequest;
+import com.ant.filetrans.transfer.api.model.TransferListResponse;
 import com.ant.filetrans.transfer.api.model.TransferResponse;
 import com.ant.filetrans.transfer.application.TransferCommand;
 import com.ant.filetrans.transfer.infrastructure.batch.Extensions;
@@ -74,6 +75,50 @@ public final class TransferApiMapper {
     }
 
     /**
+     * Converts a Spring Batch JobExecution to a TransferListResponse DTO.
+     *
+     * @param execution the Spring Batch job execution
+     * @return the generated DTO for list API response
+     */
+    public static TransferListResponse toTransferListResponse(JobExecution execution) {
+        TransferListResponse response = new TransferListResponse();
+        
+        response.setExecutionId(execution.getId());
+        response.setStatus(mapListStatus(execution.getStatus()));
+        
+        // Extract source and target paths from job parameters
+        String sourceDir = execution.getJobParameters().getString("sourceDir");
+        String filePath = execution.getJobParameters().getString("filePath");
+        String targetBaseDir = execution.getJobParameters().getString("targetBaseDir");
+        
+        // Use filePath if present (single file transfer), otherwise sourceDir
+        response.setSourcePath(filePath != null ? filePath : (sourceDir != null ? sourceDir : ""));
+        response.setTargetPath(targetBaseDir != null ? targetBaseDir : "");
+        
+        if (execution.getStartTime() != null) {
+            OffsetDateTime startTime = execution.getStartTime()
+                    .atZone(ZoneId.systemDefault())
+                    .toOffsetDateTime();
+            response.setStartTime(startTime);
+        }
+        
+        if (execution.getEndTime() != null) {
+            OffsetDateTime endTime = execution.getEndTime()
+                    .atZone(ZoneId.systemDefault())
+                    .toOffsetDateTime();
+            response.setEndTime(endTime);
+        }
+        
+        // Get file count from step execution context or write count
+        int fileCount = execution.getStepExecutions().stream()
+                .mapToInt(step -> (int) step.getWriteCount())
+                .sum();
+        response.setFileCount(fileCount);
+        
+        return response;
+    }
+
+    /**
      * Maps Spring Batch BatchStatus enum to the generated TransferResponse.StatusEnum.
      */
     private static TransferResponse.StatusEnum mapStatus(org.springframework.batch.core.BatchStatus batchStatus) {
@@ -86,6 +131,22 @@ public final class TransferApiMapper {
             case COMPLETED -> TransferResponse.StatusEnum.COMPLETED;
             case ABANDONED -> TransferResponse.StatusEnum.ABANDONED;
             default -> TransferResponse.StatusEnum.UNKNOWN;
+        };
+    }
+
+    /**
+     * Maps Spring Batch BatchStatus enum to the generated TransferListResponse.StatusEnum.
+     */
+    private static TransferListResponse.StatusEnum mapListStatus(org.springframework.batch.core.BatchStatus batchStatus) {
+        return switch (batchStatus) {
+            case STARTING -> TransferListResponse.StatusEnum.STARTING;
+            case STARTED -> TransferListResponse.StatusEnum.STARTED;
+            case STOPPING -> TransferListResponse.StatusEnum.STOPPING;
+            case STOPPED -> TransferListResponse.StatusEnum.STOPPED;
+            case FAILED -> TransferListResponse.StatusEnum.FAILED;
+            case COMPLETED -> TransferListResponse.StatusEnum.COMPLETED;
+            case ABANDONED -> TransferListResponse.StatusEnum.ABANDONED;
+            default -> TransferListResponse.StatusEnum.UNKNOWN;
         };
     }
 
